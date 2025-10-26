@@ -1,0 +1,193 @@
+import * as vscode from 'vscode';
+import * as path from 'path';
+import { StorageManager, TimelineData, ReviewHistory } from '../core/storage';
+
+export class Exporter {
+    private storageManager: StorageManager;
+
+    constructor() {
+        this.storageManager = new StorageManager();
+    }
+
+    async exportToCSV(): Promise<void> {
+        try {
+            const csv = await this.storageManager.exportToCSV();
+            const fileName = `cleanguard-timeline-${new Date().toISOString().split('T')[0]}.csv`;
+            
+            const uri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(fileName),
+                filters: {
+                    'CSV Files': ['csv'],
+                    'All Files': ['*']
+                }
+            });
+
+            if (uri) {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(csv, 'utf8'));
+                vscode.window.showInformationMessage(`✅ Timeline exported to ${path.basename(uri.fsPath)}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to export CSV: ${error}`);
+        }
+    }
+
+    async exportToJSON(): Promise<void> {
+        try {
+            const json = await this.storageManager.exportToJSON();
+            const fileName = `cleanguard-timeline-${new Date().toISOString().split('T')[0]}.json`;
+            
+            const uri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(fileName),
+                filters: {
+                    'JSON Files': ['json'],
+                    'All Files': ['*']
+                }
+            });
+
+            if (uri) {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(json, 'utf8'));
+                vscode.window.showInformationMessage(`✅ Timeline exported to ${path.basename(uri.fsPath)}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to export JSON: ${error}`);
+        }
+    }
+
+    async exportQualityReport(): Promise<void> {
+        try {
+            const data = await this.storageManager.loadHistory();
+            const report = this.generateQualityReport(data);
+            
+            const fileName = `cleanguard-quality-report-${new Date().toISOString().split('T')[0]}.md`;
+            
+            const uri = await vscode.window.showSaveDialog({
+                defaultUri: vscode.Uri.file(fileName),
+                filters: {
+                    'Markdown Files': ['md'],
+                    'All Files': ['*']
+                }
+            });
+
+            if (uri) {
+                await vscode.workspace.fs.writeFile(uri, Buffer.from(report, 'utf8'));
+                vscode.window.showInformationMessage(`✅ Quality report exported to ${path.basename(uri.fsPath)}`);
+            }
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to export quality report: ${error}`);
+        }
+    }
+
+    private generateQualityReport(data: TimelineData): string {
+        let report = `# CleanGuard Quality Report\n\n`;
+        report += `**Generated**: ${new Date().toLocaleString()}\n\n`;
+        
+        report += `## Executive Summary\n\n`;
+        report += `- **Total Reviews**: ${data.summary.totalReviews}\n`;
+        report += `- **Total Issues Found**: ${data.summary.totalIssues}\n`;
+        report += `- **Average Quality Score**: ${data.summary.averageQualityScore}/100\n`;
+        report += `- **Analysis Period**: Last 30 days\n\n`;
+        
+        report += `## Quality Trends\n\n`;
+        if (data.summary.trendData.length > 0) {
+            const latest = data.summary.trendData[data.summary.trendData.length - 1];
+            const earliest = data.summary.trendData[0];
+            const improvement = latest.qualityScore - earliest.qualityScore;
+            
+            report += `- **Latest Quality Score**: ${latest.qualityScore}/100\n`;
+            report += `- **Quality Improvement**: ${improvement > 0 ? '+' : ''}${improvement} points\n`;
+            report += `- **Trend**: ${improvement > 0 ? '📈 Improving' : improvement < 0 ? '📉 Declining' : '➡️ Stable'}\n\n`;
+        }
+        
+        report += `## Issue Breakdown\n\n`;
+        const issueBreakdown = this.analyzeIssues(data.reviews);
+        report += `- **Security Issues**: ${issueBreakdown.security}\n`;
+        report += `- **Performance Issues**: ${issueBreakdown.performance}\n`;
+        report += `- **Style Issues**: ${issueBreakdown.style}\n\n`;
+        
+        report += `## Top Problem Files\n\n`;
+        const problemFiles = this.getTopProblemFiles(data.reviews);
+        problemFiles.forEach((file, index) => {
+            report += `${index + 1}. **${file.fileName}**: ${file.totalIssues} issues\n`;
+        });
+        
+        report += `\n## Recommendations\n\n`;
+        report += this.generateRecommendations(data);
+        
+        report += `\n---\n\n`;
+        report += `*Report generated by CleanGuard - Local. Safe. Clean.*\n`;
+        
+        return report;
+    }
+
+    private analyzeIssues(reviews: ReviewHistory[]): {security: number, performance: number, style: number} {
+        const breakdown = { security: 0, performance: 0, style: 0 };
+        
+        reviews.forEach(review => {
+            review.issues.forEach(issue => {
+                switch (issue.category) {
+                    case 'security':
+                        breakdown.security++;
+                        break;
+                    case 'performance':
+                        breakdown.performance++;
+                        break;
+                    case 'style':
+                        breakdown.style++;
+                        break;
+                }
+            });
+        });
+        
+        return breakdown;
+    }
+
+    private getTopProblemFiles(reviews: ReviewHistory[]): Array<{fileName: string, totalIssues: number}> {
+        const fileMap = new Map<string, number>();
+        
+        reviews.forEach(review => {
+            const current = fileMap.get(review.fileName) || 0;
+            fileMap.set(review.fileName, current + review.issueCount);
+        });
+        
+        return Array.from(fileMap.entries())
+            .map(([fileName, totalIssues]) => ({ fileName, totalIssues }))
+            .sort((a, b) => b.totalIssues - a.totalIssues)
+            .slice(0, 10);
+    }
+
+    private generateRecommendations(data: TimelineData): string {
+        let recommendations = '';
+        
+        if (data.summary.averageQualityScore < 70) {
+            recommendations += `- **Priority**: Focus on improving overall code quality\n`;
+        }
+        
+        if (data.summary.totalIssues > 50) {
+            recommendations += `- **Action**: Implement stricter pre-commit checks\n`;
+        }
+        
+        const issueBreakdown = this.analyzeIssues(data.reviews);
+        if (issueBreakdown.security > 0) {
+            recommendations += `- **Security**: Address ${issueBreakdown.security} security issues immediately\n`;
+        }
+        
+        if (issueBreakdown.performance > 10) {
+            recommendations += `- **Performance**: Optimize code performance (${issueBreakdown.performance} issues)\n`;
+        }
+        
+        if (data.summary.trendData.length > 1) {
+            const latest = data.summary.trendData[data.summary.trendData.length - 1];
+            const previous = data.summary.trendData[data.summary.trendData.length - 2];
+            
+            if (latest.issues > previous.issues) {
+                recommendations += `- **Trend**: Issues are increasing - review recent changes\n`;
+            }
+        }
+        
+        if (recommendations === '') {
+            recommendations = `- **Status**: Code quality is good! Keep up the excellent work.\n`;
+        }
+        
+        return recommendations;
+    }
+}

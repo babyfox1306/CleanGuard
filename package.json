@@ -1,0 +1,124 @@
+{
+  "name": "cleanguard",
+  "displayName": "CleanGuard",
+  "description": "Local. Safe. Clean. Pre-commit code review with 100% local static analysis - no AI, no cloud.",
+  "version": "0.1.0",
+  "publisher": "nhtua",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "code-review",
+    "eslint",
+    "static-analysis",
+    "security",
+    "quality",
+    "pre-commit",
+    "no-ai",
+    "local"
+  ],
+  "activationEvents": [
+    "onCommand:cleanguard.reviewFile",
+    "onCommand:cleanguard.reviewWorkspace",
+    "onCommand:cleanguard.showTimeline"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "cleanguard.reviewFile",
+        "title": "Review Current File",
+        "category": "CleanGuard"
+      },
+      {
+        "command": "cleanguard.reviewWorkspace",
+        "title": "Review Workspace",
+        "category": "CleanGuard"
+      },
+      {
+        "command": "cleanguard.showTimeline",
+        "title": "Show Review Timeline",
+        "category": "CleanGuard"
+      },
+      {
+        "command": "cleanguard.exportCSV",
+        "title": "Export Timeline to CSV",
+        "category": "CleanGuard"
+      },
+      {
+        "command": "cleanguard.exportJSON",
+        "title": "Export Timeline to JSON",
+        "category": "CleanGuard"
+      },
+      {
+        "command": "cleanguard.exportReport",
+        "title": "Export Quality Report",
+        "category": "CleanGuard"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "cleanguardTimeline",
+          "name": "CleanGuard Timeline"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "CleanGuard",
+      "properties": {
+        "cleanguard.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable CleanGuard analysis"
+        },
+        "cleanguard.rules.security": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable security rules"
+        },
+        "cleanguard.rules.performance": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable performance rules"
+        },
+        "cleanguard.rules.style": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable style rules"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@types/mocha": "^10.0.0",
+    "@types/glob": "^8.0.0",
+    "eslint": "^8.50.0",
+    "typescript": "^4.9.4",
+    "mocha": "^10.0.0",
+    "glob": "^8.0.0",
+    "@vscode/test-electron": "^2.3.0"
+  },
+  "dependencies": {
+    "eslint": "^8.50.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "jscpd": "^3.0.0",
+    "lodash": "^4.17.21"
+  }
+}
