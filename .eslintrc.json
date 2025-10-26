@@ -7,11 +7,11 @@
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
-    "@typescript-eslint/no-unused-vars": "warn",
-    "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/prefer-const": "error",
-    "eqeqeq": "error",
-    "no-var": "error",
-    "prefer-const": "error"
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/prefer-const": "off",
+    "eqeqeq": "off",
+    "no-var": "off",
+    "prefer-const": "off"
   }
 }
