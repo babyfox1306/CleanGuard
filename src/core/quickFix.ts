@@ -17,7 +17,7 @@ export class QuickFixProvider {
 
         for (const diagnostic of cleanguardDiagnostics) {
             const rule = diagnostic.code as string;
-            const quickFix = this.createQuickFix(diagnostic, rule);
+            const quickFix = this.createQuickFix(document, diagnostic, rule);
             if (quickFix) {
                 actions.push(quickFix);
             }
@@ -26,7 +26,7 @@ export class QuickFixProvider {
         return actions;
     }
 
-    private createQuickFix(diagnostic: vscode.Diagnostic, rule: string): vscode.CodeAction | null {
+    private createQuickFix(document: vscode.TextDocument, diagnostic: vscode.Diagnostic, rule: string): vscode.CodeAction | null {
         const action = new vscode.CodeAction(
             `Fix: ${rule}`,
             vscode.CodeActionKind.QuickFix
@@ -37,84 +37,82 @@ export class QuickFixProvider {
 
         switch (rule) {
             case 'prefer-let-const':
-                return this.createVarToLetFix(action, diagnostic);
+                return this.createVarToLetFix(document, action, diagnostic);
             
             case 'prefer-strict-equality':
-                return this.createEqualityFix(action, diagnostic);
+                return this.createEqualityFix(document, action, diagnostic);
             
             case 'no-console-statements':
-                return this.createConsoleFix(action, diagnostic);
+                return this.createConsoleFix(document, action, diagnostic);
             
             case 'no-debugger-statements':
-                return this.createDebuggerFix(action, diagnostic);
+                return this.createDebuggerFix(document, action, diagnostic);
             
             case 'no-magic-numbers':
-                return this.createMagicNumberFix(action, diagnostic);
+                return this.createMagicNumberFix(document, action, diagnostic);
             
             case 'no-for-in-on-arrays':
-                return this.createForInFix(action, diagnostic);
+                return this.createForInFix(document, action, diagnostic);
             
             case 'cache-array-length':
-                return this.createArrayLengthFix(action, diagnostic);
+                return this.createArrayLengthFix(document, action, diagnostic);
             
             default:
                 return null;
         }
     }
 
-    private createVarToLetFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+    private createVarToLetFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
         action.edit = new vscode.WorkspaceEdit();
         action.edit.replace(
-            diagnostic.range.document.uri,
+            document.uri,
             diagnostic.range,
-            diagnostic.range.document.getText(diagnostic.range).replace(/var\s+/, 'let ')
+            document.getText(diagnostic.range).replace(/var\s+/, 'let ')
         );
         return action;
     }
 
-    private createEqualityFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+    private createEqualityFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
         action.edit = new vscode.WorkspaceEdit();
         action.edit.replace(
-            diagnostic.range.document.uri,
+            document.uri,
             diagnostic.range,
-            diagnostic.range.document.getText(diagnostic.range).replace(/==/g, '===')
+            document.getText(diagnostic.range).replace(/==/g, '===')
         );
         return action;
     }
 
-    private createConsoleFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+    private createConsoleFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
         action.edit = new vscode.WorkspaceEdit();
-        // Comment out the console statement
-        const text = diagnostic.range.document.getText(diagnostic.range);
+        const text = document.getText(diagnostic.range);
         action.edit.replace(
-            diagnostic.range.document.uri,
-            diagnostic.range,
-            `// ${text}`
-        );
-        return action;
-    }
-
-    private createDebuggerFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
-        action.edit = new vscode.WorkspaceEdit();
-        // Comment out the debugger statement
-        const text = diagnostic.range.document.getText(diagnostic.range);
-        action.edit.replace(
-            diagnostic.range.document.uri,
+            document.uri,
             diagnostic.range,
             `// ${text}`
         );
         return action;
     }
 
-    private createMagicNumberFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+    private createDebuggerFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
         action.edit = new vscode.WorkspaceEdit();
-        const text = diagnostic.range.document.getText(diagnostic.range);
+        const text = document.getText(diagnostic.range);
+        action.edit.replace(
+            document.uri,
+            diagnostic.range,
+            `// ${text}`
+        );
+        return action;
+    }
+
+    private createMagicNumberFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+        action.edit = new vscode.WorkspaceEdit();
+        const text = document.getText(diagnostic.range);
         const magicNumber = text.match(/\b(?:[2-9]|[1-9]\d+)\b/)?.[0];
         
         if (magicNumber) {
             const constantName = `CONSTANT_${magicNumber}`.toUpperCase();
             action.edit.replace(
-                diagnostic.range.document.uri,
+                document.uri,
                 diagnostic.range,
                 text.replace(magicNumber, constantName)
             );
@@ -122,11 +120,10 @@ export class QuickFixProvider {
         return action;
     }
 
-    private createForInFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+    private createForInFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
         action.edit = new vscode.WorkspaceEdit();
-        const text = diagnostic.range.document.getText(diagnostic.range);
+        const text = document.getText(diagnostic.range);
         
-        // Convert for...in to for...of
         const forInMatch = text.match(/for\s*\(\s*(var|let|const)\s+(\w+)\s+in\s+([^)]+)\)/);
         if (forInMatch) {
             const [, declType, varName, arrayName] = forInMatch;
@@ -135,7 +132,7 @@ export class QuickFixProvider {
                 `for (${declType} ${varName} of ${arrayName})`
             );
             action.edit.replace(
-                diagnostic.range.document.uri,
+                document.uri,
                 diagnostic.range,
                 newText
             );
@@ -143,11 +140,10 @@ export class QuickFixProvider {
         return action;
     }
 
-    private createArrayLengthFix(action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
+    private createArrayLengthFix(document: vscode.TextDocument, action: vscode.CodeAction, diagnostic: vscode.Diagnostic): vscode.CodeAction {
         action.edit = new vscode.WorkspaceEdit();
-        const text = diagnostic.range.document.getText(diagnostic.range);
+        const text = document.getText(diagnostic.range);
         
-        // Extract array name and cache length
         const arrayMatch = text.match(/(\w+)\.length/);
         if (arrayMatch) {
             const arrayName = arrayMatch[1];
@@ -156,20 +152,19 @@ export class QuickFixProvider {
                 `${arrayName}Length`
             );
             
-            // Add length variable declaration before the loop
             const lines = text.split('\n');
-            const loopLineIndex = lines.findIndex(line => line.includes('for'));
+            const loopLineIndex = lines.findIndex((line: string) => line.includes('for'));
             if (loopLineIndex > 0) {
                 const lengthDeclaration = `const ${arrayName}Length = ${arrayName}.length;\n`;
                 action.edit.insert(
-                    diagnostic.range.document.uri,
+                    document.uri,
                     new vscode.Position(loopLineIndex, 0),
                     lengthDeclaration
                 );
             }
             
             action.edit.replace(
-                diagnostic.range.document.uri,
+                document.uri,
                 diagnostic.range,
                 newText
             );

@@ -26,11 +26,6 @@ export class DiagnosticProvider {
             diagnostic.source = 'CleanGuard';
             diagnostic.code = issue.rule;
             diagnostic.tags = this.getTags(issue.category);
-            
-            // Add quick fix if available
-            diagnostic.codeDescription = {
-                href: vscode.Uri.parse(`https://cleanguard.dev/rules/${issue.rule}`)
-            };
 
             return diagnostic;
         });
@@ -62,9 +57,6 @@ export class DiagnosticProvider {
         const tags: vscode.DiagnosticTag[] = [];
         
         switch (category) {
-            case 'security':
-                tags.push(vscode.DiagnosticTag.Security);
-                break;
             case 'performance':
                 tags.push(vscode.DiagnosticTag.Unnecessary);
                 break;
