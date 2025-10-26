@@ -59,7 +59,7 @@ jobs:
       run: npx vsce package
     
     - name: Upload package
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: cleanguard.vsix
         path: cleanguard-*.vsix
@@ -73,13 +73,10 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Download package
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: cleanguard.vsix
-    
+
     - name: Publish to VS Code Marketplace
-      uses: GabrielBB/vsce-action@v1
-      with:
-        pat: ${{ secrets.VSCE_PAT }}
-        packagePath: cleanguard-*.vsix
-        publishOnly: true
+      run: npx vsce publish --packagePath cleanguard-*.vsix --pat ${{ secrets.VSCE_PAT }}
+
